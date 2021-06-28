@@ -284,7 +284,7 @@ class CWGANGP():
         return image
     
     def generate_images(self, label):
-        self.generator.load_weights('../cwgan_gp/generator')
+        #self.generator.load_weights('../cwgan_gp/generator')
         noise = np.random.normal(0, 1, (1, self.latent_dim))
         gen_imgs = self.generator.predict([noise, np.array(label).reshape(-1,1)])
 
