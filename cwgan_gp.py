@@ -1,23 +1,21 @@
 # Large amount of credit goes to:
-# https://github.com/eriklindernoren/Keras-GAN/blob/master/wgan_gp/wgan_gp.py and
-# https://github.com/eriklindernoren/Keras-GAN/blob/master/cgan/cgan.py
+# https://github.com/eriklindernoren/tensorflow.keras-GAN/blob/master/wgan_gp/wgan_gp.py and
+# https://github.com/eriklindernoren/tensorflow.keras-GAN/blob/master/cgan/cgan.py
 # which I've used as a reference for this implementation
 # Author: Hanling Wang
 # Date: 2018-11-21
 
 from __future__ import print_function, division
-
-from keras.datasets import mnist
-from keras.layers.merge import _Merge
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply
-from keras.layers import BatchNormalization, Activation, ZeroPadding2D, Embedding
-from keras.layers.advanced_activations import LeakyReLU
-from keras.layers.convolutional import UpSampling2D, Conv2D
-from keras.models import Sequential, Model
-from keras.optimizers import RMSprop
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.layers import Average
+from tensorflow.keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, LeakyReLU, UpSampling2D, Conv2D
+from tensorflow.keras.layers import BatchNormalization, Activation, ZeroPadding2D, Embedding
+#from tensorflow.keras.layers import Average
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.optimizers import RMSprop
 from functools import partial
 
-import keras.backend as K
+import tensorflow.keras.backend as K
 
 import matplotlib.pyplot as plt
 
@@ -25,7 +23,7 @@ import math
 
 import numpy as np
 
-class RandomWeightedAverage(_Merge):
+class RandomWeightedAverage(Average):
     """Provides a (random) weighted average between real and generated image samples"""
     def _merge_function(self, inputs):
         global batch_size
@@ -33,7 +31,7 @@ class RandomWeightedAverage(_Merge):
         return (alpha * inputs[0]) + ((1 - alpha) * inputs[1])
         
 class CWGANGP():
-    def __init__(self, epochs=100, batch_size=32, sample_interval=50):
+    def __init__(self, epochs=100, batch_size=32, sample_interval=50, gen_path:str = None, critic_path:str = None):
         self.img_rows = 28
         self.img_cols = 28
         self.channels = 1
@@ -51,7 +49,11 @@ class CWGANGP():
 
         # Build the generator and critic
         self.generator = self.build_generator()
+        if gen_path is not None:
+            self.generator.load_weights(gen_path)
         self.critic = self.build_critic()
+        if critic_path:
+            self.critic.load_weights(critic_path)
 
         #-------------------------------
         # Construct Computational Graph
@@ -85,7 +87,7 @@ class CWGANGP():
         # 'averaged_samples' argument
         partial_gp_loss = partial(self.gradient_penalty_loss,
                           averaged_samples=interpolated_img)
-        partial_gp_loss.__name__ = 'gradient_penalty' # Keras requires function names
+        partial_gp_loss.__name__ = 'gradient_penalty' # tensorflow.keras requires function names
 
         self.critic_model = Model(inputs=[real_img, label, z_disc], outputs=[valid, fake, validity_interpolated])
         self.critic_model.compile(loss=[self.wasserstein_loss,
@@ -113,7 +115,6 @@ class CWGANGP():
         # Defines generator model
         self.generator_model = Model([z_gen, label], valid)
         self.generator_model.compile(loss=self.wasserstein_loss, optimizer=optimizer)
-        
         
     def gradient_penalty_loss(self, y_true, y_pred, averaged_samples):
         """
@@ -299,6 +300,6 @@ if __name__ == '__main__':
     epochs = 20000
     batch_size = 32
     sample_interval = 50
-    wgan = CWGANGP(epochs, batch_size, sample_interval)
-    wgan.train()
-    # wgan.generate_images(1) # generate images of a specific class
+    wgan = CWGANGP(epochs, batch_size, sample_interval, gen_path="generator", critic_path="discriminator")
+    #wgan.train()
+    wgan.generate_images(1) # generate images of a specific class
