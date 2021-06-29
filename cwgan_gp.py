@@ -13,6 +13,7 @@ from tensorflow.keras.layers import BatchNormalization, Activation, ZeroPadding2
 #from tensorflow.keras.layers import Average
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.optimizers import RMSprop
+import tensorflow as tf
 from functools import partial
 
 import tensorflow.keras.backend as K
@@ -120,6 +121,8 @@ class CWGANGP():
         """
         Computes gradient penalty based on prediction and weighted real / fake samples
         """
+        #with tf.GradientTape() as tape:
+        #    gradients = tape.gradient(y_pred, averaged_samples)[0]
         gradients = K.gradients(y_pred, averaged_samples)[0]
         # compute the euclidean norm by squaring ...
         gradients_sqr = K.square(gradients)
@@ -236,6 +239,7 @@ class CWGANGP():
             # ---------------------
             #  Train Generator
             # ---------------------
+            noise = np.random.normal(0, 1, (self.batch_size, self.latent_dim))
             sampled_labels = np.random.randint(0, self.nclasses, self.batch_size).reshape(-1, 1)
             g_loss = self.generator_model.train_on_batch([noise, sampled_labels], valid)
 
@@ -300,6 +304,6 @@ if __name__ == '__main__':
     epochs = 20000
     batch_size = 32
     sample_interval = 50
-    wgan = CWGANGP(epochs, batch_size, sample_interval, gen_path="generator", critic_path="discriminator")
+    wgan = CWGANGP(epochs, batch_size, sample_interval, gen_path=None, critic_path=None)
     #wgan.train()
     wgan.generate_images(1) # generate images of a specific class
